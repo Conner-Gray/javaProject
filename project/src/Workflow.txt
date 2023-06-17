@@ -1,0 +1,24 @@
+> User logs in // Done
+> User sees welcome message // Done
+> User is given a list of options for them
+>   Options include: add a new city from database to cities they wish to visit
+                     flag city as having been visited
+                     view list of all cities in database
+                     view all cities they want to visit
+                     view all cities visited
+                     view detailed info about a specific city
+                     log out
+                     optional: change info user info
+                     optional: add city to DB?
+
+> Upper and lowercase options should both be accepted
+> incorrect inputs should be caught and explained
+
+
+> store currently logged in user's ID
+> check all has_visited from user_cities matching user_ID
+> view all cities in a given country by name
+> User login: select id from users where name = 'x' and password = 'y'
+> view a given city's name, population, area, country name, continent, and government
+> Returns the names of the cities, and their countries, the user wants to visit
+> Lists how many users have visited each city
