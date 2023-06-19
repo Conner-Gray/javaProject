@@ -9,38 +9,40 @@ public class Main {
 
         System.out.println("Welcome to Your Travel Planner");
 
-        String state = "LOGGED_OUT";
+        UserInfo user = new UserInfo("LOGGED_OUT");
 
-        int ID = -1;
         char option;
-        while(!state.equals("QUIT")) {
-            if(state.equals("LOGGED_OUT")){
+        while(!user.getState().equals("QUIT")) {
+            if(user.getState().equals("LOGGED_OUT")){
                 option = logSelect();
                 if(option == '1'){
-                    ID = userLogIn();
-                    if(ID != -1){
-                        state = "LOGGED_IN";
+                    userLogIn(user);
+                    if(user.getID() != -1){
+                        user.setState("LOGGED_IN");
                     }
                 } else if (option == '0') {
-                    state = "QUIT";
+                    user.setState("QUIT");
                 } else{
                     System.out.println("Invalid option, please try again.");
                 }
 
-            } else if (state.equals("LOGGED_IN")) {
+            } else if (user.getState().equals("LOGGED_IN")) {
+                System.out.println("Welcome, " + user.getName());
                 option = initialSelect();
                 if(option == '1'){
-                    viewAllVisited(ID);
+                    viewAllVisited(user.getID());
                 } else if (option == '2') {
-                    viewLikeToVisit(ID);
+                    viewLikeToVisit(user.getID());
                 } else if (option == '3') {
                     citySelect();
                 } else if (option == '4') {
                     citiesInCountry();
                 } else if (option == '5') {
                     viewPopular();
+                } else if (option == '6') {
+                    viewUserInfo(user);
                 } else if (option == '0'){
-                    state = "QUIT";
+                    user.setState("QUIT");
                 }
             }
 
@@ -49,35 +51,13 @@ public class Main {
         System.out.println("Goodbye!");
     }
 
-    private static int userLogIn(){
+    private static void userLogIn(UserInfo user){
         Scanner scan = new Scanner(System.in);
         System.out.print("Please enter your username: ");
         String uName = scan.nextLine();
         System.out.print("Please enter your password: ");
         String uPass = scan.nextLine();
-
-        return authUser(uName, uPass);
-    }
-
-    private static Integer authUser(String username, String password) {
-        String query = "select id from users where name = ? and password = ?;";
-        try {
-            Connection conn = DriverManager.getConnection(url);
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, username);
-            stmt.setString(2, password);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("id");
-            } else {
-                System.out.println("Invalid username or password! Please try again.");
-                return -1;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            System.out.println("Fatal error! Please file a bug report.");
-            return -1;
-        }
+        user.authUser(uName, uPass, url);
     }
 
     private static char logSelect(){
@@ -101,6 +81,7 @@ public class Main {
                             Press 3 to view a city's detailed information
                             Press 4 to view all cities in a country
                             Press 5 to view most popular cities
+                            Press 6 to view your user info
                             > \s""");
             String select = scan.nextLine();
             option = select.charAt(0);
@@ -111,7 +92,7 @@ public class Main {
     }
 
     private static boolean initialErrorCheck(char option){
-        if(option != '0' && option != '1' && option != '2' && option != '3' && option != '4' && option != '5'){
+        if(option != '0' && option != '1' && option != '2' && option != '3' && option != '4' && option != '5' && option != '6'){
             System.out.println("Invalid entry! Please try again.");
             return false;
         }
@@ -293,5 +274,89 @@ public class Main {
         Scanner scan = new Scanner(System.in);
         System.out.print("Press enter to return to menu...");
         scan.nextLine();
+    }
+
+    private static void viewUserInfo(UserInfo user){
+        System.out.println(user);
+        Scanner scan = new Scanner(System.in);
+        System.out.print("Press enter to return to menu...");
+        scan.nextLine();
+    }
+}
+
+class UserInfo{
+
+    int ID = -1;
+    String name;
+    String password;
+    String email;
+
+    String state;
+
+    public UserInfo(String state) {
+        this.state = state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getState() {
+        return state;
+    }
+    public int getID() {
+        return ID;
+    }
+
+    public String getName(){
+        return name;
+    }
+
+    public void setID(int ID) {
+        this.ID = ID;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    public void authUser(String username, String password, String url) {
+        String query = "select * from users where name = ? and password = ?;";
+        try {
+            Connection conn = DriverManager.getConnection(url);
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                this.setID(rs.getInt("id"));
+                this.setName(rs.getString("name"));
+                this.setPassword(rs.getString("password"));
+                this.setEmail(rs.getString("email"));
+
+            } else {
+                System.out.println("Invalid username or password! Please try again.");
+                this.setID(-1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("Fatal error! Please file a bug report.");
+            this.setID(-1);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Your information is: " +
+                "\nName: " + name +
+                "\nPassword: " + password +
+                "\nEmail: " + email;
     }
 }
