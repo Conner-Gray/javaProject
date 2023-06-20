@@ -68,6 +68,21 @@ public class UserInfo{
         }
     }
 
+    public void addUser(String url){
+        String query = "INSERT INTO users (name, password, email) VALUES (?, ?, ?);";
+        try {
+            Connection conn = DriverManager.getConnection(url);
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, this.name);
+            stmt.setString(2, this.password);
+            stmt.setString(3, this.email);
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            System.out.println("\nUsername " + this.name + " already exists! Please select a unique username.\n");
+        }
+    }
+
     @Override
     public String toString() {
         return "Your information is: " +

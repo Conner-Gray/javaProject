@@ -22,6 +22,9 @@ public class Main {
                     }
                 } else if (option == '0') {
                     user.setState("QUIT");
+                } else if (option == '2') {
+                    createNewUser(user);
+                    user.addUser(url);
                 } else{
                     System.out.println("Invalid option, please try again.");
                 }
@@ -41,6 +44,8 @@ public class Main {
                     viewPopular();
                 } else if (option == '6') {
                     viewUserInfo(user);
+                } else if (option == '7') {
+                    visitCity(user.getID());
                 } else if (option == '0'){
                     user.setState("QUIT");
                 }
@@ -62,9 +67,33 @@ public class Main {
 
     private static char logSelect(){
         Scanner scan = new Scanner(System.in);
-        System.out.print("Press 0 to quit, or 1 to log in: ");
+        System.out.print("Press 0 to quit, 1 to log in, or 2 to create new account: ");
         String select = scan.nextLine();
         return select.charAt(0);
+    }
+
+    private static boolean createNewUser(UserInfo user){
+        Scanner scan = new Scanner(System.in);
+        System.out.print("Type desired username: ");
+        user.setName(scan.nextLine());
+        System.out.print("Type desired password: ");
+        user.setPassword(scan.nextLine());
+        System.out.print("Type your email address: ");
+        user.setEmail(scan.nextLine());
+        boolean valid = false;
+        while(!valid){
+            System.out.println("\n" + user);
+            System.out.print("Is this information correct? Type 1 for yes, 0 for no: ");
+            String choice = scan.nextLine();
+            if (choice.equals("1")) {
+                valid = true;
+            } else if (!choice.equals("0")) {
+                System.out.println("Invalid input!");
+            } else{
+                valid = createNewUser(user);
+            }
+        }
+        return true;
     }
 
     private static char initialSelect(){
@@ -82,6 +111,7 @@ public class Main {
                             Press 4 to view all cities in a country
                             Press 5 to view most popular cities
                             Press 6 to view your user info
+                            Press 7 to mark a city as visited/unvisited
                             > \s""");
             String select = scan.nextLine();
             option = select.charAt(0);
@@ -92,7 +122,7 @@ public class Main {
     }
 
     private static boolean initialErrorCheck(char option){
-        if(option != '0' && option != '1' && option != '2' && option != '3' && option != '4' && option != '5' && option != '6'){
+        if(option != '0' && option != '1' && option != '2' && option != '3' && option != '4' && option != '5' && option != '6' && option != '7'){
             System.out.println("Invalid entry! Please try again.");
             return false;
         }
@@ -105,13 +135,13 @@ public class Main {
                 from user_cities uc
                 join cities ci on uc.city_id = ci.id
                 join countries co on co.id = ci.country_id
-                where user_id = ?""";
+                where user_id = ? and has_visited = true""";
         try {
             Connection conn = DriverManager.getConnection(url);
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setInt(1, ID);
             ResultSet rs = stmt.executeQuery();
-            if(!rs.next()){
+            if(!rs.isBeforeFirst()){
                 System.out.println("Nowhere yet!");
             }
             while (rs.next()){
@@ -175,12 +205,14 @@ public class Main {
             if(!rs.next()){
                 System.out.println("City not found!");
             }
-            System.out.println("Name: " + rs.getString("name"));
-            System.out.println("Populaton: " + rs.getInt("population"));
-            System.out.println("Area: " + rs.getDouble("area"));
-            System.out.println("Country: " + rs.getString("country_name"));
-            System.out.println("Continent: " + rs.getString("continent"));
-            System.out.println("Government: " + rs.getString("government"));
+            else{
+                System.out.println("Name: " + rs.getString("name"));
+                System.out.println("Populaton: " + rs.getInt("population"));
+                System.out.println("Area: " + rs.getDouble("area"));
+                System.out.println("Country: " + rs.getString("country_name"));
+                System.out.println("Continent: " + rs.getString("continent"));
+                System.out.println("Government: " + rs.getString("government"));
+            }
 
             System.out.print("Press enter to return to menu...");
             scan.nextLine();
@@ -282,5 +314,102 @@ public class Main {
         System.out.print("Press enter to return to menu...");
         scan.nextLine();
     }
+
+    private static void visitCity(int id){
+        Scanner scan = new Scanner(System.in);
+        System.out.println("Which city would you like to change the 'visited' flag for?");
+        System.out.println("(NOTE: type the city's name as it appears in our service. If you are unsure how it appears, use option 4 on our home menu to search manually)");
+        System.out.print("> ");
+        char confirm = confirmVisit(scan.nextLine(), id);
+        if(confirm != 0){
+            System.out.println("Updated!");
+            System.out.print("Press enter to return to menu...");
+            scan.nextLine();
+        }
+    }
+
+    private static char confirmVisit(String name, int id){
+        Scanner scan = new Scanner(System.in);
+
+        String query = """
+                select ci.id,\s
+                ci.name,\s
+                co.name as country_name,
+                uc.has_visited
+                from cities ci\s
+                join countries co\s
+                join user_cities uc on uc.user_id = ?
+                on uc.city_id = ci.id\s
+                where ci.name = ?;""";
+
+        try {
+            Connection conn = DriverManager.getConnection(url);
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, id);
+            stmt.setString(2, name);
+            ResultSet rs = stmt.executeQuery();
+            if(!rs.next()){
+                System.out.println("City not found!");
+                return 0;
+            }
+            else{
+
+                int cityID = rs.getInt("id");
+                boolean hasVisited = rs.getBoolean("has_visited");
+                System.out.println("Name: " + rs.getString("name"));
+                System.out.println("Country: " + rs.getString("country_name"));
+
+                if(hasVisited){
+                    System.out.println("You have visited this city! Mark as unvisited?");
+                }
+                else{
+                    System.out.println("You have not visited this city! Mark as visited?");
+                }
+                System.out.println("(type 0 for no, 1 for yes)");
+                System.out.print("> ");
+                char choice = scan.nextLine().charAt(0);
+                choice = visitConfirmInputCheck(choice);
+                if(choice == '0') {
+                    return 0;
+                } else {
+                    changeHasVisited(cityID, hasVisited, id);
+                    return 1;
+                }
+            }
+
+        }catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("Fatal error! Please file a bug report.");
+            return 0;
+        }
+    }
+
+    private static char visitConfirmInputCheck(char choice){
+        Scanner scan = new Scanner(System.in);
+        while(choice != '1' && choice != '0'){
+            System.out.println("Invalid input! Enter 0 or 1");
+            choice = scan.nextLine().charAt(0);
+        }
+        return choice;
+    }
+
+    private static void changeHasVisited(int cityID, boolean hasVisited, int userID) {
+        String query = """
+                UPDATE user_cities
+                SET has_visited = ?
+                WHERE user_id = ? and city_id = ?;""";
+
+        try {
+            Connection conn = DriverManager.getConnection(url);
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setBoolean(1, !hasVisited);
+            stmt.setInt(2, userID);
+            stmt.setInt(3, cityID);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
 
